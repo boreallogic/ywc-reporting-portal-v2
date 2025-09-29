@@ -1,0 +1,5 @@
+Indicator,Measurement Method,Notes,Tier
+Staff Turnover Rate,Staff count at period start and end; number of staff who left,Calculate percentage turnover for organizational health,1
+Employee Wellness Package,Does your organization have a formal employee wellness and benefits package? (Yes/No) Which of the following does your organization provide to permanent staff? (Check all that apply): ☐ Health and/or dental insurance ☐ Employee Assistance Program (EAP) ☐ Paid mental health or self-care days ☐ RRSP matching or retirement savings program ☐ Paid professional development time or funds ☐ Other (please specify),Captures whether organizations have formal structures in place to support employee wellbeing and retention such as benefits packages RRSP contributions and wellness programs,2
+Board Meeting Attendance,How many board meetings were held; how many were attended by majority,Track governance engagement,1
+Collaboration Activities,Check all that apply: ☐ Co-delivered programming ☐ Joint funding proposals ☐ Shared advocacy ☐ Resource sharing ☐ Other,Track partnership engagement,2

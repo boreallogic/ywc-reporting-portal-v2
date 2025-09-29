@@ -45,6 +45,11 @@ export const StandardOptions = {
     { value: 'no', label: 'No' },
     { value: 'not_applicable', label: 'Not applicable' }
   ],
+
+  yesNo: [
+    { value: 'yes', label: 'Yes' },
+    { value: 'no', label: 'No' }
+  ],
   
   satisfactionScale: [
     { value: 1, label: 'Very Dissatisfied' },
@@ -54,6 +59,19 @@ export const StandardOptions = {
     { value: 5, label: 'Very Satisfied' }
   ],
   
+  employeeBenefits: [
+    { value: 'health_dental', label: 'Health and/or dental insurance' },
+    { value: 'eap', label: 'Employee Assistance Program (EAP)' },
+    { value: 'mental_health_days', label: 'Paid mental health or self-care days' },
+    { value: 'rrsp_matching', label: 'RRSP matching or retirement savings program' },
+    { value: 'professional_development', label: 'Paid professional development time or funds' },
+    { value: 'flexible_schedule', label: 'Flexible work schedule' },
+    { value: 'remote_work', label: 'Remote work options' },
+    { value: 'wellness_program', label: 'Wellness program or gym membership' },
+    { value: 'extended_leave', label: 'Extended parental/family leave' },
+    { value: 'other', label: 'Other (specify)' }
+  ],
+
   boardCompensation: [
     { value: 'per_meeting', label: 'Per-meeting stipend' },
     { value: 'monthly', label: 'Monthly honorarium' },
@@ -260,11 +278,47 @@ export const createFieldConfig = (indicatorName, measurementMethod) => {
     };
   }
   
+  // Multi-part questions (like Universal Indicators)
+  if (method.includes('(Yes/No)') && method.includes('Check all that apply')) {
+    return {
+      type: 'multi_part',
+      fields: [
+        {
+          key: 'hasProgram',
+          type: FieldTypes.RADIO,
+          label: extractYesNoQuestion(method),
+          options: StandardOptions.yesNo,
+          validation: [ValidationRules.required]
+        },
+        {
+          key: 'details',
+          type: FieldTypes.CHECKBOX,
+          label: extractCheckboxQuestion(method),
+          options: extractCheckboxOptionsFromMethod(method),
+          validation: [ValidationRules.required],
+          dependsOn: 'hasProgram',
+          dependsOnValue: 'yes'
+        }
+      ]
+    };
+  }
+
+  // Employee wellness/benefits questions
+  if (name.includes('wellness') || name.includes('benefit')) {
+    if (method.includes('Check all that apply')) {
+      return {
+        type: FieldTypes.CHECKBOX,
+        options: StandardOptions.employeeBenefits,
+        validation: [ValidationRules.required]
+      };
+    }
+  }
+
   // Yes/No questions
-  if (method.includes('yes/no') || method.includes('(yes / no)')) {
+  if (method.includes('yes/no') || method.includes('(yes / no)') || method.includes('(Yes/No)')) {
     return {
       type: FieldTypes.RADIO,
-      options: StandardOptions.yesNoNA,
+      options: StandardOptions.yesNo,
       validation: [ValidationRules.required]
     };
   }
@@ -380,6 +434,58 @@ const extractCheckboxOptions = (measurementMethod) => {
   }
   
   return options;
+};
+
+/**
+ * Extract Yes/No question from Universal Indicator format
+ */
+const extractYesNoQuestion = (method) => {
+  const match = method.match(/^([^?]*\?)\s*\(Yes\/No\)/);
+  return match ? match[1] : 'Does your organization have this?';
+};
+
+/**
+ * Extract checkbox question from Universal Indicator format
+ */
+const extractCheckboxQuestion = (method) => {
+  const match = method.match(/Which of the following[^?]*\?|What[^?]*\?/);
+  return match ? match[0] : 'Which of the following apply?';
+};
+
+/**
+ * Extract checkbox options from method text (enhanced)
+ */
+const extractCheckboxOptionsFromMethod = (method) => {
+  // First try standard checkbox extraction
+  const standardOptions = extractCheckboxOptions(method);
+  if (standardOptions.length > 0) return standardOptions;
+  
+  // Try to extract from parentheses format: (Check all that apply): ☐ Option1 ☐ Option2
+  const options = [];
+  const checkboxPattern = /☐\s*([^☐]+?)(?=☐|$)/g;
+  let match;
+  
+  while ((match = checkboxPattern.exec(method)) !== null) {
+    const optionText = match[1].trim();
+    if (optionText && !optionText.includes('Other (please specify)')) {
+      options.push({
+        value: optionText.toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_'),
+        label: optionText
+      });
+    }
+  }
+  
+  // Add "Other" option
+  if (options.length > 0) {
+    options.push({ value: 'other', label: 'Other (specify)' });
+  }
+  
+  // Fallback to employee benefits if this looks like a benefits question
+  if (options.length === 0 && (method.toLowerCase().includes('benefit') || method.toLowerCase().includes('wellness'))) {
+    return StandardOptions.employeeBenefits;
+  }
+  
+  return options.length > 0 ? options : StandardOptions.collaborationTypes;
 };
 
 /**
@@ -541,6 +647,20 @@ export const generateStandardizedFields = (csvData) => {
           format: calc.format,
           unit: calc.format === 'percentage' ? '%' : (calc.format === 'currency' ? '$' : ''),
           required: false
+        });
+      });
+    } else if (fieldConfig.type === 'multi_part') {
+      // Multi-part indicators (like Universal Indicators)
+      fieldConfig.fields.forEach(field => {
+        indicator.fields.push({
+          id: `${indicator.id}_${field.key}`,
+          type: field.type,
+          label: field.label,
+          options: field.options,
+          required: field.validation?.some(v => v === ValidationRules.required) || false,
+          dependsOn: field.dependsOn ? `${indicator.id}_${field.dependsOn}` : undefined,
+          dependsOnValue: field.dependsOnValue,
+          validation: field.validation
         });
       });
     } else {

@@ -69,6 +69,11 @@ function App() {
     }
   }
 
+  const isFieldVisible = (field) => {
+    if (!field.dependsOn || !field.dependsOnValue) return true
+    return responses[field.dependsOn] === field.dependsOnValue
+  }
+
   const nextIndicator = () => {
     if (currentIndicator < indicators.length - 1) {
       setCurrentIndicator(currentIndicator + 1)
@@ -241,7 +246,7 @@ function App() {
 
             {/* Fields */}
             <div className="space-y-6">
-              {currentIndicatorData.fields.map((field) => (
+              {currentIndicatorData.fields.filter(isFieldVisible).map((field) => (
                 <div key={field.id} className="form-group">
                   <label className="form-label">
                     {field.label}
@@ -321,6 +326,28 @@ function App() {
                             className="form-radio text-blue-600"
                           />
                           <span className="ml-2">{option.label}</span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+
+                  {field.type === 'checkbox' && (
+                    <div className="space-y-3">
+                      {field.options.map((option) => (
+                        <label key={option.value} className="flex items-start">
+                          <input
+                            type="checkbox"
+                            checked={(responses[field.id] || []).includes(option.value)}
+                            onChange={(e) => {
+                              const currentValues = responses[field.id] || []
+                              const newValues = e.target.checked
+                                ? [...currentValues, option.value]
+                                : currentValues.filter(v => v !== option.value)
+                              handleFieldChange(field.id, newValues)
+                            }}
+                            className="form-checkbox text-blue-600 mt-1"
+                          />
+                          <span className="ml-3">{option.label}</span>
                         </label>
                       ))}
                     </div>

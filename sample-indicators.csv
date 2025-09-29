@@ -1,0 +1,6 @@
+Indicator,Measurement Method,Notes
+Staff Turnover Rate,Staff count at period start and end; number of staff who left,Calculate percentage turnover for organizational health
+Board Meeting Attendance,How many board meetings were held; how many were attended by majority,Track governance engagement
+Funding Ratio,Core funding amount ($); project funding amount ($),Calculate core vs project funding balance
+Client Satisfaction,Rate satisfaction on scale of 1-5,Measure service quality outcomes
+Collaboration Activities,Check all that apply: ☐ Co-delivered programming ☐ Joint funding proposals ☐ Shared advocacy ☐ Resource sharing ☐ Other,Track partnership engagement

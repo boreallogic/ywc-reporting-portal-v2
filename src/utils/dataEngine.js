@@ -467,20 +467,55 @@ export const generateStandardizedFields = (csvData) => {
   
   const indicators = [];
   
+  // Get first row to check column names
+  const firstRow = csvData[0];
+  if (!firstRow) return [];
+  
+  console.log('CSV headers:', Object.keys(firstRow));
+  
+  // Find indicator and method column names (flexible matching)
+  const indicatorCol = Object.keys(firstRow).find(key => 
+    key.toLowerCase().includes('indicator') || 
+    key.toLowerCase().includes('outcome') ||
+    key.toLowerCase().includes('measure')
+  );
+  
+  const methodCol = Object.keys(firstRow).find(key => 
+    key.toLowerCase().includes('method') || 
+    key.toLowerCase().includes('how') ||
+    key.toLowerCase().includes('measurement') ||
+    key.toLowerCase().includes('approach')
+  );
+  
+  const notesCol = Object.keys(firstRow).find(key => 
+    key.toLowerCase().includes('note') || 
+    key.toLowerCase().includes('description') ||
+    key.toLowerCase().includes('comment')
+  );
+  
+  console.log('Detected columns:', { indicatorCol, methodCol, notesCol });
+  
+  if (!indicatorCol) {
+    throw new Error(`No indicator column found. Available columns: ${Object.keys(firstRow).join(', ')}`);
+  }
+  
   // Parse CSV data to extract indicators
   csvData.forEach((row, index) => {
-    if (!row.Indicator || !row['Measurement Method']) return;
+    const indicatorText = row[indicatorCol];
+    const methodText = row[methodCol] || '';
+    
+    if (!indicatorText || indicatorText.trim() === '') return;
     
     const indicator = {
       id: `indicator_${index}`,
-      title: row.Indicator.trim(),
-      description: row.Notes || '',
-      tier: determineTier(row.Indicator, row['Measurement Method']),
+      title: indicatorText.trim(),
+      description: row[notesCol] || '',
+      tier: determineTier(indicatorText, methodText),
       fields: []
     };
     
     // Create standardized fields based on measurement method
-    const fieldConfig = createFieldConfig(row.Indicator, row['Measurement Method']);
+    const fieldConfig = createFieldConfig(indicatorText, methodText);
     
     if (fieldConfig.type === 'calculated_group') {
       // Complex calculated indicators
@@ -513,8 +548,8 @@ export const generateStandardizedFields = (csvData) => {
       indicator.fields.push({
         id: `${indicator.id}_main`,
         type: fieldConfig.type,
-        label: row.Indicator,
-        description: row['Measurement Method'],
+        label: indicatorText,
+        description: methodText,
         options: fieldConfig.options || fieldConfig.scale,
         required: true,
         placeholder: fieldConfig.placeholder,

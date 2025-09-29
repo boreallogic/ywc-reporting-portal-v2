@@ -14,18 +14,45 @@ function App() {
     const file = event.target.files[0]
     if (!file) return
 
+    console.log('File selected:', file.name)
+
     Papa.parse(file, {
       complete: (results) => {
+        console.log('CSV parse complete:', results)
+        
+        if (results.errors && results.errors.length > 0) {
+          console.error('CSV parsing errors:', results.errors)
+          alert('Error parsing CSV file: ' + results.errors[0].message)
+          return
+        }
+
+        if (!results.data || results.data.length === 0) {
+          alert('CSV file appears to be empty or invalid')
+          return
+        }
+
+        console.log('CSV data:', results.data)
         setCsvData(results.data)
         
-        const detectedOrg = detectOrganization(results.data)
-        setOrganization(detectedOrg)
-        
-        const standardizedIndicators = generateStandardizedFields(results.data)
-        setIndicators(standardizedIndicators)
-        setCurrentIndicator(0)
-        setResponses({})
-        setIsComplete(false)
+        try {
+          const detectedOrg = detectOrganization(results.data)
+          console.log('Detected organization:', detectedOrg)
+          setOrganization(detectedOrg)
+          
+          const standardizedIndicators = generateStandardizedFields(results.data)
+          console.log('Generated indicators:', standardizedIndicators)
+          setIndicators(standardizedIndicators)
+          setCurrentIndicator(0)
+          setResponses({})
+          setIsComplete(false)
+        } catch (error) {
+          console.error('Error processing CSV:', error)
+          alert('Error processing CSV file: ' + error.message)
+        }
+      },
+      error: (error) => {
+        console.error('Papa Parse error:', error)
+        alert('Error reading CSV file: ' + error.message)
       },
       header: true,
       skipEmptyLines: true
